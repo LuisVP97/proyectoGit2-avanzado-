@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: [self-hosted, Windows, X64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Actualizar README
+        shell: powershell
+        run: |
+          $feature = "Nueva feature"
+          Add-Content -Path README.md -Value "Feature: $feature"
+
+      - name: Commit y push del README
+        shell: powershell
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Actualizar README con nueva feature [skip ci]"
+          if ($LASTEXITCODE -ne 0) {
+            exit 0
+          }
+          git push
+
+  validate-dev:
+    needs: update-readme
+    runs-on: [self-hosted, Windows, X64]
+
+    steps:
+      - name: Validar DEV_TOKEN
+        shell: powershell
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ($env:DEV_TOKEN -eq $env:LOCAL_DEV_TOKEN) {
+            Write-Host "DEV_TOKEN correcto"
+          }
+          else {
+            Write-Host "DEV_TOKEN incorrecto"
+            exit 1
+          }
