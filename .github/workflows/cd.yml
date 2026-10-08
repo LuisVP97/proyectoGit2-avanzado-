@@ -1,0 +1,52 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-version:
+    runs-on: [self-hosted, Windows, X64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Actualizar AppVersion
+        shell: powershell
+        run: |
+          (Get-Content README.md) -replace '^AppVersion=0$', 'AppVersion=1' | Set-Content README.md
+
+      - name: Commit y push de la versión
+        shell: powershell
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Actualizar AppVersion a 1 [skip ci]"
+          if ($LASTEXITCODE -ne 0) {
+            exit 0
+          }
+          git push
+
+  validate-prod:
+    needs: update-version
+    runs-on: [self-hosted, Windows, X64]
+
+    steps:
+      - name: Validar PROD_TOKEN
+        shell: powershell
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ($env:PROD_TOKEN -eq $env:LOCAL_PROD_TOKEN) {
+            Write-Host "PROD_TOKEN correcto"
+          }
+          else {
+            Write-Host "PROD_TOKEN incorrecto"
+            exit 1
+          }
