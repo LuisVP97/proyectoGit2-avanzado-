@@ -5,6 +5,9 @@ on:
     branches:
       - develop
 
+permissions:
+  contents: write
+
 jobs:
   update-readme:
     runs-on: [self-hosted, Windows, X64]
